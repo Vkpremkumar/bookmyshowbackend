@@ -1,0 +1,21 @@
+# Ignore environment files
+.env
+
+# Ignore node_modules directory
+node_modules/
+
+# Ignore backup files
+README.md.backup
+
+# Ignore package lock file
+package-lock.json
+
+# Ignore other common files
+*.log
+*.tmp
+
+# Ignore the config files
+config/
+
+#Ignore package json file
+package.json
