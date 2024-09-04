@@ -1,0 +1,218 @@
+const express = require('express');
+const router = express.Router();
+const { sequelize } = require('../config/database');
+const Booking = require('../models/bookingsmodel');
+const User = require('../models/usermodel');
+const Showtime = require('../models/showtimemodel');
+const Theatre = require('../models/theatremodel');
+const Movie = require('../models/moviemodel')
+
+// const addBooking = (req, res) => {
+//     const { user_id, showtime_id, seats, total_price, booking_time } = req.body;
+
+//     if (!user_id || !showtime_id || !seats || !total_price || !booking_time) {
+//         return res.status(400).json({ message: `Please fill all the required fields!...` });
+//     }
+
+//     // verify  user_id
+//     User.findOne({ where: { id: user_id } })
+//         .then(existUser => {
+//             if (!existUser) {
+//                 return res.status(401).json({ message: `User not found!...` });
+//             }
+
+//         }).catch(err => {
+//             return res.status(500).json({ message: `Server error: ${err.message}` });
+//         });
+
+//     //verify show_time
+//     Showtime.findOne({ where: { id: showtime_id } })
+//         .then(existShowtime => {
+//             if (!existShowtime) {
+//                 return res.status(401).json({ message: `Show time not found!...` });
+//             }
+//         })
+//         .catch(err => {
+//             return res.status(500).json({ message: `Server error: ${err.message}` });
+//         })
+
+//     Booking.create({
+//         user_id,
+//         showtime_id,
+//         seats,
+//         total_price,
+//         booking_time
+//     })
+//         .then(newBooking => {
+//             return res.status(201).json({ Booking: newBooking, message: `Ticket Booked Successfully...` })
+//         })
+//         .catch(err => {
+//             return res.status(500).json({ message: `Server error: ${err.message}` });
+//         })
+
+// }
+
+
+// create booking impl start
+const addBooking = async (req, res) => {
+    const { user_id, showtime_id, seats, total_price, booking_time } = req.body;
+
+    if (!user_id || !showtime_id || !seats || !total_price || !booking_time) {
+        return res.status(400).json({ message: `Please fill all the required fields!...` });
+    }
+
+    // Start a transaction
+    const transaction = await sequelize.transaction();
+
+    try {
+        // Verify user_id
+        const existUser = await User.findOne({ where: { id: user_id } });
+        if (!existUser) {
+            await transaction.rollback();
+            return res.status(401).json({ message: `User not found!...` });
+        }
+
+        // Verify showtime_id
+        const existShowtime = await Showtime.findOne({ where: { id: showtime_id } });
+        if (!existShowtime) {
+            await transaction.rollback();
+            return res.status(401).json({ message: `Showtime not found!...` });
+        }
+
+        // Find the associated theater
+        const theatre = await Theatre.findOne({ where: { id: existShowtime.theatre_id } });
+        if (!theatre) {
+            await transaction.rollback();
+            return res.status(404).json({ message: `Theatre not found!...` });
+        }
+
+        // Check if there are enough available seats
+        if (theatre.available_seats < seats) {
+            await transaction.rollback();
+            return res.status(400).json({ message: `Not enough available seats!...` });
+        }
+
+        // Update the available seats in the theatre
+        theatre.available_seats -= seats;
+        await theatre.save({ transaction });
+
+        // Create the booking
+        const newBooking = await Booking.create({
+            user_id,
+            showtime_id,
+            seats,
+            total_price,
+            booking_time
+        }, { transaction });
+
+        // Commit the transaction
+        await transaction.commit();
+
+        return res.status(201).json({ Booking: newBooking, message: `Ticket Booked Successfully...` });
+    } catch (err) {
+        // Rollback the transaction in case of an error
+        await transaction.rollback();
+        return res.status(500).json({ message: `Server error: ${err.message}` });
+    }
+}
+
+// create booking impl end
+
+
+
+// get all booking impl start
+const getAllBookings = async (req, res) => {
+    const limit = parseInt(req.query.limit) || 10;
+    try {
+        const options = {
+            order: [['id', 'desc']],
+            limit: limit,
+            include: [{
+                model: User,
+                as: 'User',
+                attributes: ['username', 'email', 'mobile_number', 'role']
+            },
+            {
+                model: Showtime,
+                as: 'Showtime',
+                attributes: ['movie_id', 'theatre_id', 'show_time'],
+                include: [{
+                    model: Theatre,
+                    as: 'Theatre',
+                    attributes: ['theatre_name', 'total_seats', 'available_seats']
+                }, {
+                    model: Movie,
+                    as: 'Movie',
+                    attributes: ['title', 'description', 'duration', 'release_date', 'image']
+                }]
+            }]
+
+        }
+
+        const allBookings = await Booking.findAll(options);
+
+        return res.status(200).json({ Bookings: allBookings, message: `Booking details fetched successfully...` });
+
+    } catch (err) {
+        return res.status(500).json({ message: `Server error : ${err.message}` });
+    }
+
+}
+
+// get booking list impl end
+
+
+// cancel booking impl starts
+const cancelBooking = async (req, res) => {
+    const { booking_id } = req.params; // Assuming booking_id is passed as a URL parameter
+
+    // Start a transaction
+    const transaction = await sequelize.transaction();
+
+    try {
+        //  Verify that the booking exists
+        const existBooking = await Booking.findOne({ where: { id: booking_id }, transaction });
+
+        if (!existBooking) {
+            // If the booking does not exist, return a 404 error
+            await transaction.rollback();
+            return res.status(404).json({ message: `Booking not found!...` });
+        }
+
+        //  Get the showtime and the theater associated with the booking
+        const showtime = await Showtime.findOne({ where: { id: existBooking.showtime_id }, transaction });
+        if (!showtime) {
+            await transaction.rollback();
+            return res.status(404).json({ message: `Showtime not found!...` });
+        }
+
+        const theatre = await Theatre.findOne({ where: { id: showtime.theatre_id }, transaction });
+        if (!theatre) {
+            await transaction.rollback();
+            return res.status(404).json({ message: `Theatre not found!...` });
+        }
+
+        //  Update the available seats in the theatre
+        theatre.available_seats += existBooking.seats;
+        await theatre.save({ transaction });
+
+        //  Delete the booking
+        await Booking.destroy({ where: { id: booking_id }, transaction });
+
+        //  Commit the transaction
+        await transaction.commit();
+
+        return res.status(200).json({ message: `Booking canceled successfully, and seats updated.` });
+
+    } catch (error) {
+        // Rollback the transaction if any error occurs
+        await transaction.rollback();
+        return res.status(500).json({ message: `Server error: ${error.message}` });
+    }
+}
+
+// cancel booking impl end
+
+
+
+module.exports = { addBooking, getAllBookings, cancelBooking };
