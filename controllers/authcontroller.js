@@ -132,6 +132,4 @@ const userLogin = async (req, res) => {
 
 
 
-
-
 module.exports = { registerUser, userLogin };
