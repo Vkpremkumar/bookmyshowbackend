@@ -3,6 +3,8 @@ const router = express.Router();
 const City = require('../models/citymodel');
 const State = require('../models/statemodel');
 
+
+// create a new city start
 const addCity = async (req, res) => {
     const { city_code, city_value, state_id } = req.body;
 
@@ -38,7 +40,10 @@ const addCity = async (req, res) => {
     }
 }
 
+// create a new city end
 
+
+// get all cities impl start
 
 const getAllCity = async (req, res) => {
 
@@ -65,6 +70,8 @@ const getAllCity = async (req, res) => {
         return res.status(400).json({ message: err.message });
     }
 }
+
+// get all cities impl end
 
 
 

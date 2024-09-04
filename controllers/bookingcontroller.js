@@ -7,50 +7,6 @@ const Showtime = require('../models/showtimemodel');
 const Theatre = require('../models/theatremodel');
 const Movie = require('../models/moviemodel')
 
-// const addBooking = (req, res) => {
-//     const { user_id, showtime_id, seats, total_price, booking_time } = req.body;
-
-//     if (!user_id || !showtime_id || !seats || !total_price || !booking_time) {
-//         return res.status(400).json({ message: `Please fill all the required fields!...` });
-//     }
-
-//     // verify  user_id
-//     User.findOne({ where: { id: user_id } })
-//         .then(existUser => {
-//             if (!existUser) {
-//                 return res.status(401).json({ message: `User not found!...` });
-//             }
-
-//         }).catch(err => {
-//             return res.status(500).json({ message: `Server error: ${err.message}` });
-//         });
-
-//     //verify show_time
-//     Showtime.findOne({ where: { id: showtime_id } })
-//         .then(existShowtime => {
-//             if (!existShowtime) {
-//                 return res.status(401).json({ message: `Show time not found!...` });
-//             }
-//         })
-//         .catch(err => {
-//             return res.status(500).json({ message: `Server error: ${err.message}` });
-//         })
-
-//     Booking.create({
-//         user_id,
-//         showtime_id,
-//         seats,
-//         total_price,
-//         booking_time
-//     })
-//         .then(newBooking => {
-//             return res.status(201).json({ Booking: newBooking, message: `Ticket Booked Successfully...` })
-//         })
-//         .catch(err => {
-//             return res.status(500).json({ message: `Server error: ${err.message}` });
-//         })
-
-// }
 
 
 // create booking impl start
