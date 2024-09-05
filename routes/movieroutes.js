@@ -6,7 +6,7 @@ const { verifyTokenAndAdmin } = require('../middleware/verifyToken');
 
 
 router.post('/addMovieWithLanguages', upload.single('image'), verifyTokenAndAdmin, movieController.addMovieWithLanguages);
-router.get('/getAllMovies',movieController.getAllMovies);
+router.get('/getAllMovies', movieController.getAllMovies);
 
 
 
