@@ -7,8 +7,7 @@ node_modules/
 # Ignore backup files
 README.md.backup
 
-# Ignore package lock file
-package-lock.json
+
 
 # Ignore other common files
 *.log
