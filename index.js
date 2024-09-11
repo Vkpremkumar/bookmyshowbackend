@@ -13,6 +13,10 @@ const movieRoute = require('./routes/movieroutes');
 const showTimeRoute = require('./routes/showtimeroutes');
 const bookingRoute = require('./routes/bookingroutes');
 
+const cors = require('cors');
+server.use(cors());
+
+
 
 dotenv.config();
 
