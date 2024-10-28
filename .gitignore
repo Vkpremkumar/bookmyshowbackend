@@ -14,6 +14,5 @@ README.md.backup
 *.tmp
 
 # Ignore the config files
-config/
 
 
