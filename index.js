@@ -20,7 +20,7 @@ server.use(cors());
 
 dotenv.config();
 
-Port = process.env.PORT || 4000;
+Port = process.env.PORT || 10000;
 
 
 
