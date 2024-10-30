@@ -26,11 +26,11 @@ const transporter = nodemailer.createTransport({
 
 //  send booking confirmation email function
 const sendBookingEmail = async (userEmail, bookingDetails) => {
-  const mailOptions = {
-    from: process.env.SENDER_EMAIL,
-    to: userEmail,                   // logged  User's email 
-    subject: 'Booking Confirmation',
-    text: `Dear Customer,
+    const mailOptions = {
+        from: process.env.SENDER_EMAIL,
+        to: userEmail,                   // logged  User's email 
+        subject: 'Booking Confirmation',
+        text: `Dear Customer,
 
 Thank you for booking with us! Here are your booking details:
 
@@ -45,83 +45,81 @@ We hope you enjoy the show!
 Regards,
 Book My Show
     `
-  };
+    };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log('Booking confirmation email sent.');
-  } catch (error) {
-    console.error('Error sending email:', error);
-  }
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log('Booking confirmation email sent.');
+    } catch (error) {
+        console.error('Error sending email:', error);
+    }
 };
 
 const addBooking = async (req, res) => {
-    debugger
-  const { user_id, showtime_id, seats, total_price, booking_time } = req.body;
 
-  if (!user_id || !showtime_id || !seats || !total_price || !booking_time) {
-    return res.status(400).json({ message: `Please fill all the required fields!...` });
-  }
+    const { user_id, showtime_id, seats, total_price, booking_time } = req.body;
 
-  // Start a transaction
-  const transaction = await sequelize.transaction();
-
-  try {
-    // Verifying user_id
-    const existUser = await User.findOne({ where: { id: user_id } });
-    if (!existUser) {
-      await transaction.rollback();
-      return res.status(401).json({ message: `User not found!...` });
+    if (!user_id || !showtime_id || !seats || !total_price || !booking_time) {
+        return res.status(400).json({ message: `Please fill all the required fields!...` });
     }
 
-    // Verifying showtime_id
-    const existShowtime = await Showtime.findOne({ where: { id: showtime_id } });
-    if (!existShowtime) {
-      await transaction.rollback();
-      return res.status(401).json({ message: `Showtime not found!...` });
+    // Start a transaction
+    const transaction = await sequelize.transaction();
+
+    try {
+        // Verifying user_id
+        const existUser = await User.findOne({ where: { id: user_id } });
+        if (!existUser) {
+            await transaction.rollback();
+            return res.status(401).json({ message: `User not found!...` });
+        }
+
+        // Verifying showtime_id
+        const existShowtime = await Showtime.findOne({ where: { id: showtime_id } });
+        if (!existShowtime) {
+            await transaction.rollback();
+            return res.status(401).json({ message: `Showtime not found!...` });
+        }
+
+        // Finding the associated theater
+        const theatre = await Theatre.findOne({ where: { id: existShowtime.theatre_id } });
+        if (!theatre) {
+            await transaction.rollback();
+            return res.status(404).json({ message: `Theatre not found!...` });
+        }
+
+        // Check if there are enough available seats
+        if (theatre.available_seats < seats) {
+            await transaction.rollback();
+            return res.status(400).json({ message: `Not enough available seats!...` });
+        }
+
+        // Update the available seats in the theatre
+        theatre.available_seats -= seats;
+        await theatre.save({ transaction });
+
+        // Create the booking
+        const newBooking = await Booking.create({
+            user_id,
+            showtime_id,
+            seats,
+            total_price,
+            booking_time
+        }, { transaction });
+
+        // Commit the transaction
+        await transaction.commit();
+
+        // Send the booking confirmation email
+        await sendBookingEmail(existUser.email, newBooking); // Sends email to the user's email
+
+        return res.status(201).json({ Booking: newBooking, message: `Ticket Booked Successfully...` });
+    } catch (err) {
+        // Rollback the transaction in case of an error
+        await transaction.rollback();
+        return res.status(500).json({ message: `Server error: ${err.message}` });
     }
-
-    // Finding the associated theater
-    const theatre = await Theatre.findOne({ where: { id: existShowtime.theatre_id } });
-    if (!theatre) {
-      await transaction.rollback();
-      return res.status(404).json({ message: `Theatre not found!...` });
-    }
-
-    // Check if there are enough available seats
-    if (theatre.available_seats < seats) {
-      await transaction.rollback();
-      return res.status(400).json({ message: `Not enough available seats!...` });
-    }
-
-    // Update the available seats in the theatre
-    theatre.available_seats -= seats;
-    await theatre.save({ transaction });
-
-    // Create the booking
-    const newBooking = await Booking.create({
-      user_id,
-      showtime_id,
-      seats,
-      total_price,
-      booking_time
-    }, { transaction });
-
-    // Commit the transaction
-    await transaction.commit();
-
-    // Send the booking confirmation email
-    await sendBookingEmail(existUser.email, newBooking); // Sends email to the user's email
-
-    return res.status(201).json({ Booking: newBooking, message: `Ticket Booked Successfully...` });
-  } catch (err) {
-    // Rollback the transaction in case of an error
-    await transaction.rollback();
-    return res.status(500).json({ message: `Server error: ${err.message}` });
-  }
 };
-
-
 
 
 // create booking impl end
@@ -226,12 +224,5 @@ const cancelBooking = async (req, res) => {
 
 
 
-// email start
-
-
-
-
-
-// end
 
 module.exports = { addBooking, getAllBookings, cancelBooking };
