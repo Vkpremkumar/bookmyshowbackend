@@ -1,21 +1,22 @@
+require('dotenv').config();
 
 
 const mysql = require('mysql2');
 const { Sequelize } = require('sequelize');
 
 // Create a new instance of Sequelize with your database credentials
-const sequelize = new Sequelize('bookmyshow', 'avnadmin', 'AVNS_hhAH0VDmpD7t85Asd3X', {
-    host: 'mysql-282cdbaf-vikramprem93-bdce.i.aivencloud.com',
-    dialect: 'mysql',
-    port: 21233
+const sequelize = new Sequelize( process.env.PROD_DATABASE,process.env.PROD_USER, process.env.PROD_PASSWORD, {
+    host: process.env.PROD_HOST,
+    dialect: process.env.PROD_DIALECT,
+    port: process.env.PROD_PORT
 });
 
 const db = mysql.createConnection({
-    host: "mysql-282cdbaf-vikramprem93-bdce.i.aivencloud.com",
-    user: "avnadmin",
-    password: "AVNS_hhAH0VDmpD7t85Asd3X",
-    database: "bookmyshow",
-    port: 21233,
+    host: process.env.PROD_HOST,
+    user: process.env.PROD_USER,
+    password: process.env.PROD_PASSWORD,
+    database: process.env.PROD_DATABASE,
+    port: process.env.PROD_PORT,
     // connectTimeout: 10000
 })
 
